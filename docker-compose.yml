@@ -8,7 +8,7 @@ services:
       NEXT_PUBLIC_API_URL: https://api.entersys.mx/api
       NEXT_PUBLIC_APP_URL: https://admin.entersys.mx
     networks:
-      - traefik-public
+      - traefik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.entersys-admin.rule=Host(`admin.entersys.mx`)"
@@ -17,5 +17,5 @@ services:
       - "traefik.http.services.entersys-admin.loadbalancer.server.port=3002"
 
 networks:
-  traefik-public:
+  traefik:
     external: true
