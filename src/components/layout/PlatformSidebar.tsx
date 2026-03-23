@@ -16,16 +16,28 @@ import {
   FileText,
   Mail,
   Headphones,
+  Brain,
+  MessageCircle,
+  BarChart3,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLiveChatBadge } from '@/hooks/useLiveChatBadge';
 import clsx from 'clsx';
+
+interface NavSubItem {
+  name: string;
+  href: string;
+}
 
 interface NavItem {
   name: string;
   href: string;
   icon: any;
   roles: 'all' | string[];
+  subItems?: NavSubItem[];
 }
 
 const ALL_NAVIGATION: NavItem[] = [
@@ -80,6 +92,17 @@ const ALL_NAVIGATION: NavItem[] = [
     roles: ['PLATFORM_ADMIN', 'SUPER_ADMIN', 'ADMIN'],
   },
   {
+    name: 'Chatbot IA',
+    href: '/chatbot-intelligence',
+    icon: Brain,
+    roles: ['DIRECTOR', 'PLATFORM_ADMIN', 'SUPER_ADMIN', 'ADMIN'],
+    subItems: [
+      { name: 'Conversaciones', href: '/chatbot-intelligence/conversations' },
+      { name: 'Reportes', href: '/chatbot-intelligence/reports' },
+      { name: 'Personalidades', href: '/chatbot-intelligence/personalities' },
+    ],
+  },
+  {
     name: 'Configuracion',
     href: '/settings',
     icon: Settings,
@@ -92,11 +115,30 @@ export function PlatformSidebar() {
   const { user, logout } = useAuthStore();
   const waitingCount = useLiveChatBadge();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Close sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  // Auto-expand parent if a sub-route is active
+  useEffect(() => {
+    ALL_NAVIGATION.forEach((item) => {
+      if (item.subItems && pathname?.startsWith(item.href)) {
+        setExpandedItems((prev) => new Set([...prev, item.href]));
+      }
+    });
+  }, [pathname]);
+
+  const toggleExpanded = (href: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(href)) next.delete(href);
+      else next.add(href);
+      return next;
+    });
+  };
 
   const navigation = ALL_NAVIGATION.filter(
     (item) => item.roles === 'all' || item.roles.includes(user?.role || ''),
@@ -146,6 +188,8 @@ export function PlatformSidebar() {
         {navigation.map((item) => {
           const isExternal = item.href.startsWith('http');
           const isActive = !isExternal && (pathname === item.href || pathname?.startsWith(item.href + '/'));
+          const isExpanded = expandedItems.has(item.href);
+          const hasSubItems = item.subItems && item.subItems.length > 0;
           const Icon = item.icon;
 
           if (isExternal) {
@@ -160,6 +204,53 @@ export function PlatformSidebar() {
                 <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
                 {item.name}
               </a>
+            );
+          }
+
+          if (hasSubItems) {
+            return (
+              <div key={item.name}>
+                <button
+                  onClick={() => toggleExpanded(item.href)}
+                  className={clsx(
+                    'w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isActive
+                      ? 'bg-primary-600 text-white shadow-sm'
+                      : 'text-gray-300 hover:bg-secondary-800 hover:text-white'
+                  )}
+                >
+                  <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                  {item.name}
+                  <span className="ml-auto">
+                    {isExpanded
+                      ? <ChevronDown className="w-3.5 h-3.5" />
+                      : <ChevronRight className="w-3.5 h-3.5" />
+                    }
+                  </span>
+                </button>
+                {isExpanded && (
+                  <div className="mt-1 ml-4 space-y-1">
+                    {item.subItems!.map((sub) => {
+                      const isSubActive = pathname === sub.href || pathname?.startsWith(sub.href + '/');
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          className={clsx(
+                            'flex items-center px-4 py-2 text-sm rounded-lg transition-colors',
+                            isSubActive
+                              ? 'bg-primary-700 text-white'
+                              : 'text-gray-400 hover:bg-secondary-800 hover:text-white'
+                          )}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-current mr-3 flex-shrink-0 opacity-60" />
+                          {sub.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           }
 
